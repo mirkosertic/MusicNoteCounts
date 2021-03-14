@@ -14,10 +14,10 @@ function process(strdata) {
     var xml = toXML(strdata);
 
     // Check for all score parts
-    var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ANY_TYPE, null);
-    var scorePart = partIterator.iterateNext();
-    // Now, we iterate over each part
-    while (scorePart) {
+    var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var l = 0; l < partIterator.snapshotLength; l++) {
+        var scorePart = partIterator.snapshotItem(l);
+
         var partName = singleNode(scorePart, "./part-name");
         var partId = scorePart.getAttribute("id");
 
@@ -29,21 +29,22 @@ function process(strdata) {
         var divisions = undefined;
 
         // Now, we iterate over all measures of the current score part
-        var partMeasures = document.evaluate("/score-partwise[@version = '2.0']/part[@id = '" + partId + "']/measure", xml, null, XPathResult.ANY_TYPE, null);
-        var partMeasure = partMeasures.iterateNext();
-        while (partMeasure) {
+        var partMeasures = document.evaluate("/score-partwise[@version = '2.0']/part[@id = '" + partId + "']/measure", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (var m = 0; m < partMeasures.snapshotLength; m++) {
+            var partMeasure = partMeasures.snapshotItem(m);
+
             var measureNumber = partMeasure.getAttribute("number");
 
             // Try to decypher the timing signature, as it might change with the current measure
-            var definedBeats = singleNode(partMeasure, "./attributes/time/beats");
+            var definedBeats = parseInt(singleNode(partMeasure, "./attributes/time/beats"));
             if (definedBeats) {
                 beats = definedBeats.textContent;
             }
-            var definedBeatType = singleNode(partMeasure, "./attributes/time/beat-type");
+            var definedBeatType = parseInt(singleNode(partMeasure, "./attributes/time/beat-type"));
             if (definedBeatType) {
                 beatType = definedBeatType.textContent;
             }
-            var definedDevisions = singleNode(partMeasure, "./attributes/divisions");
+            var definedDevisions = parseInt(singleNode(partMeasure, "./attributes/divisions"));
             if (definedDevisions) {
                 divisions = definedDevisions.textContent;
             }
@@ -71,22 +72,44 @@ function process(strdata) {
                 }
             }
 
+            // We count the number of notes here
+            var numberEighths = document.evaluate("count(./note[./type[text() = 'eighth'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
+            var numberQuarters = document.evaluate("count(./note[./type[text() = 'quarter'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
+            var numberHalfs = document.evaluate("count(./note[./type[text() = 'half'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
+            var numberWholes = document.evaluate("count(./note[./type[text() = 'whole'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
+            console.log(numberEighths);
+
             // Now, we iterate over all nodes of the current measure
-            var notesHelper = document.evaluate("./note/staff[text() = '" + selectedClef + "']", partMeasure, null, XPathResult.ANY_TYPE, null);
-            var nextNoteHelper = notesHelper.iterateNext();
-            while (nextNoteHelper) {
-                var currentNote = nextNoteHelper.parentNode;
+            var currentPosition = 0;
 
-                // TODO: change lyrics
+            var notes = document.evaluate("./note[./staff[text() = '" + selectedClef + "']]", partMeasure, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            for (var i = 0; i < notes.snapshotLength; i++) {
+                var currentNote = notes.snapshotItem(i);
 
-                nextNoteHelper = notesHelper.iterateNext();
+                var duration = parseInt(singleNode(currentNote, "./duration").textContent);
+
+                var lyrics = document.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                for (var j = 0; j < lyrics.snapshotLength; j++) {
+                    var lyric = lyrics.snapshotItem(j);
+                    lyric.parentNode.removeChild(lyric);
+                }
+
+                if (currentPosition % 2 === 0) {
+                    var newLyric = xml.createElement("lyric");
+                    var syllabic = xml.createElement("syllabic");
+                    syllabic.appendChild(xml.createTextNode("single"));
+                    newLyric.appendChild(syllabic);
+                    var text = xml.createElement("text");
+                    text.appendChild(xml.createTextNode(1 + currentPosition / 2));
+                    newLyric.appendChild(text);
+                    currentNote.appendChild(newLyric);
+                }
+
+                currentPosition += duration;
             }
 
             console.log("Measure " + measureNumber + " " + beats + " / " + beatType + ", divisions = " + divisions+ ", clef = " + selectedClef);
-            partMeasure = partMeasures.iterateNext();
         }
-
-        scorePart = partIterator.iterateNext();
     }
 
     return toString(xml);
