@@ -36,17 +36,17 @@ function process(strdata) {
             var measureNumber = partMeasure.getAttribute("number");
 
             // Try to decypher the timing signature, as it might change with the current measure
-            var definedBeats = parseInt(singleNode(partMeasure, "./attributes/time/beats"));
+            var definedBeats = singleNode(partMeasure, "./attributes/time/beats");
             if (definedBeats) {
-                beats = definedBeats.textContent;
+                beats = parseInt(definedBeats.textContent);
             }
-            var definedBeatType = parseInt(singleNode(partMeasure, "./attributes/time/beat-type"));
+            var definedBeatType = singleNode(partMeasure, "./attributes/time/beat-type");
             if (definedBeatType) {
-                beatType = definedBeatType.textContent;
+                beatType = parseInt(definedBeatType.textContent);
             }
-            var definedDevisions = parseInt(singleNode(partMeasure, "./attributes/divisions"));
+            var definedDevisions = singleNode(partMeasure, "./attributes/divisions");
             if (definedDevisions) {
-                divisions = definedDevisions.textContent;
+                divisions = parseInt(definedDevisions.textContent);
             }
 
             // Check for the clef to use
@@ -94,13 +94,15 @@ function process(strdata) {
                     lyric.parentNode.removeChild(lyric);
                 }
 
-                if (currentPosition % 2 === 0) {
+                var checkmark = (divisions * 4 / beatType);
+
+                if (currentPosition % checkmark === 0) {
                     var newLyric = xml.createElement("lyric");
                     var syllabic = xml.createElement("syllabic");
                     syllabic.appendChild(xml.createTextNode("single"));
                     newLyric.appendChild(syllabic);
                     var text = xml.createElement("text");
-                    text.appendChild(xml.createTextNode(1 + currentPosition / 2));
+                    text.appendChild(xml.createTextNode(1 + currentPosition / checkmark));
                     newLyric.appendChild(text);
                     currentNote.appendChild(newLyric);
                 }
