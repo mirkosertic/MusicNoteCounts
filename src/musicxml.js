@@ -10,6 +10,17 @@ function singleNode(node, path) {
     return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
 }
 
+function addLyric(document, node, text) {
+    var newLyric = document.createElement("lyric");
+    var syllabic = document.createElement("syllabic");
+    syllabic.appendChild(document.createTextNode("single"));
+    newLyric.appendChild(syllabic);
+    var textNode = document.createElement("text");
+    textNode.appendChild(document.createTextNode(text));
+    newLyric.appendChild(textNode);
+    node.appendChild(newLyric);
+}
+
 function process(strdata) {
     var xml = toXML(strdata);
 
@@ -72,21 +83,20 @@ function process(strdata) {
                 }
             }
 
-            // We count the number of notes here
-            var numberEighths = document.evaluate("count(./note[./type[text() = 'eighth'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
-            var numberQuarters = document.evaluate("count(./note[./type[text() = 'quarter'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
-            var numberHalfs = document.evaluate("count(./note[./type[text() = 'half'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
-            var numberWholes = document.evaluate("count(./note[./type[text() = 'whole'] and ./staff[text() = '" + selectedClef + "'] ])", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
-            console.log(numberEighths);
-
             // Now, we iterate over all nodes of the current measure
             var currentPosition = 0;
+
+            // The Stack for currently running triplets
+            var tripletStack = [];
 
             var notes = document.evaluate("./note[./staff[text() = '" + selectedClef + "']]", partMeasure, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
             for (var i = 0; i < notes.snapshotLength; i++) {
                 var currentNote = notes.snapshotItem(i);
 
                 var duration = parseInt(singleNode(currentNote, "./duration").textContent);
+
+                var timeModificationActualNotes = document.evaluate("./time-modification/actual-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                var timeModificationNormalNotes = document.evaluate("./time-modification/normal-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
                 var lyrics = document.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                 for (var j = 0; j < lyrics.snapshotLength; j++) {
@@ -96,15 +106,45 @@ function process(strdata) {
 
                 var checkmark = (divisions * 4 / beatType);
 
-                if (currentPosition % checkmark === 0) {
-                    var newLyric = xml.createElement("lyric");
-                    var syllabic = xml.createElement("syllabic");
-                    syllabic.appendChild(xml.createTextNode("single"));
-                    newLyric.appendChild(syllabic);
-                    var text = xml.createElement("text");
-                    text.appendChild(xml.createTextNode(1 + currentPosition / checkmark));
-                    newLyric.appendChild(text);
-                    currentNote.appendChild(newLyric);
+                var remainder = currentPosition % checkmark;
+
+                if (timeModificationActualNotes.snapshotLength > 0 && timeModificationNormalNotes.snapshotLength > 0) {
+                    var actualNotes = parseInt(timeModificationActualNotes.snapshotItem(0).textContent);
+                    var normalNotes = parseInt(timeModificationNormalNotes.snapshotItem(0).textContent);
+                    if (actualNotes === 3) {
+                        // We found a triplet
+                        var startingTriplets = document.evaluate("./notations/tuplet[@type = 'start']", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        if (startingTriplets.snapshotLength > 0) {
+                            tripletStack.push({
+                               counter: 0
+                            });
+                        }
+                    }
+                }
+
+
+                if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
+                    if (remainder === 0) {
+                        addLyric(xml, currentNote, 1 + currentPosition / checkmark);
+                    } else if (remainder === checkmark / 2) {
+                        addLyric(xml, currentNote, "&");
+                    } else if (remainder === checkmark * 0.25) {
+                        addLyric(xml, currentNote, "e");
+                    } else if (remainder === checkmark * 0.75) {
+                        addLyric(xml, currentNote, "a");
+                    }
+                }
+
+                if (tripletStack.length > 0 ) {
+                    var topTriplet = tripletStack[tripletStack.length - 1];
+                    if (topTriplet.counter === 1) {
+                        addLyric(xml, currentNote, "trip");
+                    }
+                    if (topTriplet.counter === 2) {
+                        addLyric(xml, currentNote, "let");
+                        tripletStack.pop();
+                    }
+                    topTriplet.counter++;
                 }
 
                 currentPosition += duration;
@@ -126,11 +166,24 @@ fetch('test.xml').then(function(result) {
     var filename = "test.xml";
     var pom = document.createElement('a');
 
-    var bb = new Blob([xmlAsString], {type: 'text/plain'});
-    pom.setAttribute('href', window.URL.createObjectURL(bb));
+    var bb = new Blob([xmlAsString], {type: 'application/xml'});
+    var url = window.URL.createObjectURL(bb);
+    pom.setAttribute('href', url);
     pom.setAttribute('download', filename);
 
     pom.dataset.downloadurl = ['application/xml', pom.download, pom.href].join(':');
     pom.appendChild(document.createTextNode("Click me"));
     document.body.appendChild(pom);
+
+    var preview = document.getElementById("preview");
+    var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(preview, {
+        autoResize: false,
+        backend: "svg",
+        drawingParameters: "compacttight", // more compact spacing, less padding
+        pageFormat: "A4_P",
+    });
+    var loadPromise = osmd.load(url);
+    loadPromise.then(function(){
+        osmd.render();
+    });
 });
