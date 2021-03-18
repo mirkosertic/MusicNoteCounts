@@ -21,9 +21,7 @@ function addLyric(document, node, text) {
     node.appendChild(newLyric);
 }
 
-function process(strdata) {
-    var xml = toXML(strdata);
-
+function process(xml) {
     // Check for all score parts
     var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var l = 0; l < partIterator.snapshotLength; l++) {
@@ -157,33 +155,88 @@ function process(strdata) {
     return toString(xml);
 }
 
-fetch('test.xml').then(function(result) {
-    return result.text();
-}).then(function(text) {
+function loadStep1XML(text) {
 
-    var xmlAsString = process(text);
+    var xml = toXML(text);
 
-    var filename = "test.xml";
-    var pom = document.createElement('a');
+    var paras = document.getElementsByClassName('generated');
+    while(paras[0]) {
+        paras[0].parentNode.removeChild(paras[0]);
+    }
 
-    var bb = new Blob([xmlAsString], {type: 'application/xml'});
-    var url = window.URL.createObjectURL(bb);
-    pom.setAttribute('href', url);
-    pom.setAttribute('download', filename);
+    var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var l = 0; l < partIterator.snapshotLength; l++) {
+        var scorePart = partIterator.snapshotItem(l);
 
-    pom.dataset.downloadurl = ['application/xml', pom.download, pom.href].join(':');
-    pom.appendChild(document.createTextNode("Click me"));
-    document.body.appendChild(pom);
+        var partName = singleNode(scorePart, "./part-name");
+        var partId = scorePart.getAttribute("id");
 
-    var preview = document.getElementById("preview");
-    var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(preview, {
-        autoResize: false,
-        backend: "canvas",
-        drawingParameters: "compacttight", // more compact spacing, less padding
-        pageFormat: "A4_P",
+        var checkdiv = document.createElement("div");
+        checkdiv.setAttribute("class", "partselector generated")
+        var checkbox = document.createElement("input");
+        checkbox.setAttribute("type", "checkbox");
+        checkbox.setAttribute("id", "part_" + partId);
+        checkbox.setAttribute("checked", "checked");
+        checkdiv.append(checkbox);
+        var label = document.createElement("label");
+        label.setAttribute("for", "part_" + partId);
+        label.appendChild(document.createTextNode(partName.textContent));
+        checkdiv.appendChild(label);
+
+        document.getElementById("step2").appendChild(checkdiv);
+   }
+
+    var button = document.createElement("button");
+    button.appendChild(document.createTextNode("Process my score and take me to Step 3!"));
+    button.setAttribute("class", "generated")
+    button.addEventListener("click", function() {
+
+        var paras = document.getElementById("step3").getElementsByClassName('generated');
+        while(paras[0]) {
+            paras[0].parentNode.removeChild(paras[0]);
+        }
+
+        var xmlAsString = process(xml);
+        var filename = "test.xml";
+        var pom = document.createElement('a');
+
+        var bb = new Blob([xmlAsString], {type: 'application/xml'});
+        var url = window.URL.createObjectURL(bb);
+        pom.setAttribute('href', url);
+        pom.setAttribute('download', filename);
+
+        pom.dataset.downloadurl = ['application/xml', pom.download, pom.href].join(':');
+        pom.appendChild(document.createTextNode("Click me"));
+        document.body.appendChild(pom);
+
+        var preview = document.createElement("div");
+        preview.setAttribute("class", "preview generated");
+        document.getElementById("step3").appendChild(preview);
+
+        var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(preview, {
+            autoResize: false,
+            backend: "canvas",
+            drawingParameters: "compacttight", // more compact spacing, less padding
+            xpageFormat: "A4_P",
+            drawUpToMeasureNumber: 12
+        });
+        var loadPromise = osmd.load(url);
+        loadPromise.then(function(){
+            osmd.render();
+
+            document.getElementById("step3").removeAttribute("data-disabled");
+        });
     });
-    var loadPromise = osmd.load(url);
-    loadPromise.then(function(){
-        osmd.render();
+    document.getElementById("step2").appendChild(button);
+
+    document.getElementById("step2").removeAttribute("data-disabled");
+    document.getElementById("step3").setAttribute("data-disabled", "true");
+}
+
+function loadExampleDocument() {
+    fetch('test.xml').then(function(result) {
+        return result.text();
+    }).then(function(text) {
+        loadStep1XML(text);
     });
-});
+}

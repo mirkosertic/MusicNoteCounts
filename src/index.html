@@ -4,7 +4,7 @@
         <style>
             .layout {
                 display: grid;
-                grid-template-columns: minmax(0, 15%) minmax(60rem, 70%) minmax(0, 15%);
+                grid-template-columns: minmax(0, 10%) minmax(60rem, 80%) minmax(0, 10%);
                 gap: 0 0;
                 grid-template-areas: ". . .";
             }
@@ -90,9 +90,67 @@
                 background-color: #16a085;
             }
 
-            #preview {
+            a {
+                color: #34495e;
+                font-weight: bold;
+                text-decoration: none;
+            }
+
+            a:visited {
+                text-decoration: none;
+            }
+
+            a:hover {
+                color: black;
+            }
+
+            .step[data-disabled=true] {
+                background-color: #95a5a6;
+            }
+
+            .step[data-disabled=true]::before {
+                background-color: #7f8c8d;
+            }
+
+            .partselector {
+                padding: 1rem;
+                margin-left: 1rem;
+                margin-right: 1rem;
+                margin-top: 1rem;
+                font-family: "Arial", Gadget, sans-serif;
+                font-size: 1.5rem;
+                color: #ecf0f1;
+                background-color: #8e44ad;
+                border-radius: 1rem;
+            }
+
+            button {
+                background-color: #34495e;
+                color: #ecf0f1;
+                border: 1px solid #34495e;
+                border-radius: 1rem;
+                padding: 1rem;
+                margin-left: 1rem;
+                margin-right: 1rem;
+                margin-top: 1rem;
+                font-family: "Arial", Gadget, sans-serif;
+                font-size: 1.5rem;
+            }
+
+            button:hover {
+                background-color: #2c3e50;
+                border: 1px solid #2c3e50;
+            }
+
+            .preview {
                 background-color: white;
                 margin: 3rem;
+            }
+
+            footer {
+                text-align: center;
+                font-family: "Arial", Gadget, sans-serif;
+                font-size: 1.5rem;
             }
         </style>
     </head>
@@ -102,24 +160,28 @@
         <div class="layout">
             <aside class="left">
             </aside>
-            <section>
-                <div class="welcome">
+            <main>
+                <section class="welcome">
                     <div class="headertext">Welcome to MusicXML-Note-Count-o-Matic!</div>
                     <div class="caption">Three easy online steps to add note counts to your MusicXML score.</div>
-                </div>
-                <div class="step step1" data-steptext="Step 1">
+                </section>
+                <section id="step1" class="step step1" data-steptext="Step 1">
                     <div class="stepcaption">Upload your MusicXML file by clicking here or dragging it into this area.</div>
                     <div class="hint">The file will not be sent to any internet server. All processing is done within your browser and only on your computer. This service respects your privacy!</div>
-                </div>
-                <div class="step step2" data-steptext="Step 2">
+                    <div class="hint"><a onclick="loadExampleDocument();">Click here</a> in case you just want to try this service and load an example MusicXML score.</div>
+                </section>
+                <section id="step2" class="step step2" data-steptext="Step 2" data-disabled="true">
                     <div class="stepcaption">Choose the tracks you want to add note counts to.</div>
-                </div>
-                <div class="step step3" data-steptext="Step 3">
+                    <div class="hint">All available tracks are selected by default, but maybe you want to refine the selection. Note counts are only added to the selected tracks.</div>
+                </section>
+                <section id="step3" class="step step3" data-steptext="Step 3" data-disabled="true">
                     <div class="stepcaption">Preview the processed file and download it.</div>
-                    <div id="preview">
-                    </div>
-                </div>
-            </section>
+                    <div class="hint">You will get a preview of the first twelve measures of the whole score.</div>
+                </section>
+                <footer>
+                    Made for other musicians with love by <b>Mirko Sertic</b>. Please report issues at <a href="https://github.com/mirkosertic/MusicXMLNoteCounts">Github</a>.
+                </footer>
+            </main>
             <aside class="right">
             </aside>
         </div>
