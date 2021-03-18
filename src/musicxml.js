@@ -178,7 +178,7 @@ fetch('test.xml').then(function(result) {
     var preview = document.getElementById("preview");
     var osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(preview, {
         autoResize: false,
-        backend: "svg",
+        backend: "canvas",
         drawingParameters: "compacttight", // more compact spacing, less padding
         pageFormat: "A4_P",
     });
