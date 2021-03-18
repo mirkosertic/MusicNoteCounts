@@ -220,10 +220,8 @@ function loadStep1XML(text) {
             xpageFormat: "A4_P",
             drawUpToMeasureNumber: 12
         });
-        var loadPromise = osmd.load(url);
-        loadPromise.then(function(){
+        osmd.load(url).then(function(){
             osmd.render();
-
             document.getElementById("step3").removeAttribute("data-disabled");
         });
     });
