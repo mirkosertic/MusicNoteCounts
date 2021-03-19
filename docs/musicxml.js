@@ -1,3 +1,5 @@
+var lastClickListener = undefined;
+
 function toXML(strdata) {
     return new DOMParser().parseFromString(strdata, "application/xml");
 }
@@ -6,8 +8,8 @@ function toString(xmldata) {
     return new XMLSerializer().serializeToString(xmldata);
 }
 
-function singleNode(node, path) {
-    return document.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
+function singleNode(xml, node, path) {
+    return xml.evaluate(path, node, null, XPathResult.ANY_TYPE, null).iterateNext();
 }
 
 function addLyric(document, node, text) {
@@ -21,16 +23,12 @@ function addLyric(document, node, text) {
     node.appendChild(newLyric);
 }
 
-function process(xml) {
-    // Check for all score parts
-    var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-    for (var l = 0; l < partIterator.snapshotLength; l++) {
-        var scorePart = partIterator.snapshotItem(l);
+function process(xml, partids) {
+    // Check all selected score parts
+    for (var l = 0; l < partids.length; l++) {
+        var partId = partids[l];
 
-        var partName = singleNode(scorePart, "./part-name");
-        var partId = scorePart.getAttribute("id");
-
-        console.log(partId + " -> " + partName.textContent);
+        console.log("Processing part -> " + partId);
 
         // The current set time signature
         var beats = undefined;
@@ -38,38 +36,38 @@ function process(xml) {
         var divisions = undefined;
 
         // Now, we iterate over all measures of the current score part
-        var partMeasures = document.evaluate("/score-partwise[@version = '2.0']/part[@id = '" + partId + "']/measure", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        var partMeasures = xml.evaluate("/score-partwise[@version = '2.0']/part[@id = '" + partId + "']/measure", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
         for (var m = 0; m < partMeasures.snapshotLength; m++) {
             var partMeasure = partMeasures.snapshotItem(m);
 
             var measureNumber = partMeasure.getAttribute("number");
 
             // Try to decypher the timing signature, as it might change with the current measure
-            var definedBeats = singleNode(partMeasure, "./attributes/time/beats");
+            var definedBeats = singleNode(xml, partMeasure, "./attributes/time/beats");
             if (definedBeats) {
                 beats = parseInt(definedBeats.textContent);
             }
-            var definedBeatType = singleNode(partMeasure, "./attributes/time/beat-type");
+            var definedBeatType = singleNode(xml, partMeasure, "./attributes/time/beat-type");
             if (definedBeatType) {
                 beatType = parseInt(definedBeatType.textContent);
             }
-            var definedDevisions = singleNode(partMeasure, "./attributes/divisions");
+            var definedDevisions = singleNode(xml, partMeasure, "./attributes/divisions");
             if (definedDevisions) {
                 divisions = parseInt(definedDevisions.textContent);
             }
 
             // Check for the clef to use
             // We search for the first G-clef. If there is no G-clef, the first clef is used
-            var clefCount = document.evaluate("count(./attributes/clef)", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
+            var clefCount = xml.evaluate("count(./attributes/clef)", partMeasure, null, XPathResult.ANY_TYPE, null).numberValue;
             var selectedClef
             if (clefCount === 1) {
                 selectedClef = 1;
             } else {
-                var clefs = document.evaluate("./attributes/clef", partMeasure, null, XPathResult.ANY_TYPE, null);
+                var clefs = xml.evaluate("./attributes/clef", partMeasure, null, XPathResult.ANY_TYPE, null);
                 var clef = clefs.iterateNext();
                 while (clef) {
                     if (selectedClef === undefined) {
-                        var sign = singleNode(clef, "./sign").textContent;
+                        var sign = singleNode(xml, clef, "./sign").textContent;
                         if ("G" === sign) {
                             selectedClef = clef.getAttribute("number");
                         }
@@ -87,16 +85,16 @@ function process(xml) {
             // The Stack for currently running triplets
             var tripletStack = [];
 
-            var notes = document.evaluate("./note[./staff[text() = '" + selectedClef + "']]", partMeasure, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            var notes = xml.evaluate("./note[./staff[text() = '" + selectedClef + "']]", partMeasure, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
             for (var i = 0; i < notes.snapshotLength; i++) {
                 var currentNote = notes.snapshotItem(i);
 
-                var duration = parseInt(singleNode(currentNote, "./duration").textContent);
+                var duration = parseInt(singleNode(xml, currentNote, "./duration").textContent);
 
-                var timeModificationActualNotes = document.evaluate("./time-modification/actual-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                var timeModificationNormalNotes = document.evaluate("./time-modification/normal-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                var timeModificationActualNotes = xml.evaluate("./time-modification/actual-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                var timeModificationNormalNotes = xml.evaluate("./time-modification/normal-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
-                var lyrics = document.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                var lyrics = xml.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                 for (var j = 0; j < lyrics.snapshotLength; j++) {
                     var lyric = lyrics.snapshotItem(j);
                     lyric.parentNode.removeChild(lyric);
@@ -111,7 +109,7 @@ function process(xml) {
                     var normalNotes = parseInt(timeModificationNormalNotes.snapshotItem(0).textContent);
                     if (actualNotes === 3) {
                         // We found a triplet
-                        var startingTriplets = document.evaluate("./notations/tuplet[@type = 'start']", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        var startingTriplets = xml.evaluate("./notations/tuplet[@type = 'start']", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                         if (startingTriplets.snapshotLength > 0) {
                             tripletStack.push({
                                counter: 0
@@ -164,18 +162,18 @@ function loadStep1XML(text) {
         paras[0].parentNode.removeChild(paras[0]);
     }
 
-    var partIterator = document.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var partIterator = xml.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var l = 0; l < partIterator.snapshotLength; l++) {
         var scorePart = partIterator.snapshotItem(l);
 
-        var partName = singleNode(scorePart, "./part-name");
+        var partName = singleNode(xml, scorePart, "./part-name");
         var partId = scorePart.getAttribute("id");
 
         var checkdiv = document.createElement("div");
         checkdiv.setAttribute("class", "partselector generated")
         var checkbox = document.createElement("input");
         checkbox.setAttribute("type", "checkbox");
-        checkbox.setAttribute("id", "part_" + partId);
+        checkbox.setAttribute("value", partId);
         checkbox.setAttribute("checked", "checked");
         checkdiv.append(checkbox);
         var label = document.createElement("label");
@@ -196,18 +194,23 @@ function loadStep1XML(text) {
             paras[0].parentNode.removeChild(paras[0]);
         }
 
-        var xmlAsString = process(xml);
-        var filename = "test.xml";
-        var pom = document.createElement('a');
+        // Select all checked input boxes
+        var selectedtracks = []
+        var checkboxes = document.querySelectorAll('input[type=checkbox]:checked')
+        for (var i = 0; i < checkboxes.length; i++) {
+            selectedtracks.push(checkboxes[i].value)
+        }
 
+        var xmlAsString = process(xml, selectedtracks);
+
+        var downloadlink = document.getElementById("downloadlink");
+
+        var filename = "download.xml";
         var bb = new Blob([xmlAsString], {type: 'application/xml'});
         var url = window.URL.createObjectURL(bb);
-        pom.setAttribute('href', url);
-        pom.setAttribute('download', filename);
-
-        pom.dataset.downloadurl = ['application/xml', pom.download, pom.href].join(':');
-        pom.appendChild(document.createTextNode("Click me"));
-        document.body.appendChild(pom);
+        downloadlink.setAttribute('href', url);
+        downloadlink.setAttribute('download', filename);
+        downloadlink.dataset.downloadurl = ['application/xml', filename, url].join(':');
 
         var preview = document.createElement("div");
         preview.setAttribute("class", "preview generated");
@@ -237,4 +240,45 @@ function loadExampleDocument() {
     }).then(function(text) {
         loadStep1XML(text);
     });
+    return true;
 }
+
+document.getElementById("loadexample").onclick = function(event) {
+    event.stopPropagation();
+    loadExampleDocument();
+}
+
+document.getElementById("fileupload").addEventListener("change", function() {
+    var selectedFiles = this.files;
+    if (selectedFiles.length === 1) {
+        var file = selectedFiles[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            console.log(file);
+            loadStep1XML(e.target.result);
+        };
+        reader.readAsText(file);
+    }
+}, false);
+
+var step1 = document.getElementById("step1");
+step1.addEventListener("click", function() {
+    document.getElementById("fileupload").click();
+});
+step1.addEventListener("dragover", function(e) {
+    e.preventDefault();
+}, false);
+step1.addEventListener("drop", function(e) {
+    e.preventDefault();
+    var dt = e.dataTransfer;
+    var files = dt.files;
+    if (files.length === 1) {
+        var file = files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            console.log(file);
+            loadStep1XML(e.target.result);
+        };
+        reader.readAsText(file);
+    }
+}, false)

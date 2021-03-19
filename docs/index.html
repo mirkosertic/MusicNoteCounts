@@ -152,11 +152,13 @@
                 font-family: "Arial", Gadget, sans-serif;
                 font-size: 1.5rem;
             }
+
+            .hidden {
+                display: none;
+            }
         </style>
     </head>
     <body>
-        <script src="musicxml.js">
-        </script>
         <div class="layout">
             <aside class="left">
             </aside>
@@ -168,22 +170,25 @@
                 <section id="step1" class="step step1" data-steptext="Step 1">
                     <div class="stepcaption">Upload your MusicXML file by clicking here or dragging it into this area.</div>
                     <div class="hint">The file will not be sent to any internet server. All processing is done within your browser and only on your computer. This service respects your privacy!</div>
-                    <div class="hint"><a onclick="loadExampleDocument();">Click here</a> in case you just want to try this service and load an example MusicXML score.</div>
+                    <div class="hint"><a id="loadexample">Click here</a> in case you just want to try this service and load an example MusicXML score.</div>
                 </section>
                 <section id="step2" class="step step2" data-steptext="Step 2" data-disabled="true">
                     <div class="stepcaption">Choose the tracks you want to add note counts to.</div>
                     <div class="hint">All available tracks are selected by default, but maybe you want to refine the selection. Note counts are only added to the selected tracks.</div>
                 </section>
                 <section id="step3" class="step step3" data-steptext="Step 3" data-disabled="true">
-                    <div class="stepcaption">Preview the processed file and download it.</div>
+                    <div class="stepcaption">Preview the processed file and <a id="downloadlink">download it</a>.</div>
                     <div class="hint">You will get a preview of the first twelve measures of the whole score.</div>
                 </section>
                 <footer>
                     Made for other musicians with love by <b>Mirko Sertic</b>. Please report issues at <a href="https://github.com/mirkosertic/MusicXMLNoteCounts">Github</a>.
                 </footer>
+                <input id="fileupload" type="file" class="hidden" accept="application/xml">
             </main>
             <aside class="right">
             </aside>
         </div>
+        <script src="musicxml.js">
+        </script>
     </body>
 </html>
