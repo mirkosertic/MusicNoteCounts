@@ -254,9 +254,16 @@ function loadStep1MusicXML(xml) {
 }
 
 function loadStep1GuitarPro(zip,xml) {
+
     clearGenerated();
 
-    // TODO: Implement all the magic
+    var masterTracks = singleNode(xml, xml, "/GPIF/MasterTrack/Tracks").textContent.split(" ");
+    for (var i = 0; i < masterTracks.length;i++) {
+        var partId = masterTracks[i];
+        var partName = singleNode(xml, xml, "/GPIF/Tracks/Track[@id = '" + partId + "']/Name").textContent;
+
+        addTrackSelector(partName, partId);
+    }
 }
 
 function loadExampleMusicXMLDocument() {
