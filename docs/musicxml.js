@@ -89,61 +89,65 @@ function process(xml, partids) {
             for (var i = 0; i < notes.snapshotLength; i++) {
                 var currentNote = notes.snapshotItem(i);
 
-                var duration = parseInt(singleNode(xml, currentNote, "./duration").textContent);
+                // Ignore grace notes, as they have no duration
+                var grace = singleNode(xml, currentNote, "./grace");
+                if (grace === null) {
+                    var duration = parseInt(singleNode(xml, currentNote, "./duration").textContent);
 
-                var timeModificationActualNotes = xml.evaluate("./time-modification/actual-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                var timeModificationNormalNotes = xml.evaluate("./time-modification/normal-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    var timeModificationActualNotes = xml.evaluate("./time-modification/actual-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    var timeModificationNormalNotes = xml.evaluate("./time-modification/normal-notes", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
-                var lyrics = xml.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                for (var j = 0; j < lyrics.snapshotLength; j++) {
-                    var lyric = lyrics.snapshotItem(j);
-                    lyric.parentNode.removeChild(lyric);
-                }
+                    var lyrics = xml.evaluate("./lyric", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    for (var j = 0; j < lyrics.snapshotLength; j++) {
+                        var lyric = lyrics.snapshotItem(j);
+                        lyric.parentNode.removeChild(lyric);
+                    }
 
-                var checkmark = (divisions * 4 / beatType);
+                    var checkmark = (divisions * 4 / beatType);
 
-                var remainder = currentPosition % checkmark;
+                    var remainder = currentPosition % checkmark;
 
-                if (timeModificationActualNotes.snapshotLength > 0 && timeModificationNormalNotes.snapshotLength > 0) {
-                    var actualNotes = parseInt(timeModificationActualNotes.snapshotItem(0).textContent);
-                    var normalNotes = parseInt(timeModificationNormalNotes.snapshotItem(0).textContent);
-                    if (actualNotes === 3) {
-                        // We found a triplet
-                        var startingTriplets = xml.evaluate("./notations/tuplet[@type = 'start']", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                        if (startingTriplets.snapshotLength > 0) {
-                            tripletStack.push({
-                               counter: 0
-                            });
+                    if (timeModificationActualNotes.snapshotLength > 0 && timeModificationNormalNotes.snapshotLength > 0) {
+                        var actualNotes = parseInt(timeModificationActualNotes.snapshotItem(0).textContent);
+                        var normalNotes = parseInt(timeModificationNormalNotes.snapshotItem(0).textContent);
+                        if (actualNotes === 3) {
+                            // We found a triplet
+                            var startingTriplets = xml.evaluate("./notations/tuplet[@type = 'start']", currentNote, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                            if (startingTriplets.snapshotLength > 0) {
+                                tripletStack.push({
+                                    counter: 0
+                                });
+                            }
                         }
                     }
-                }
 
 
-                if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
-                    if (remainder === 0) {
-                        addLyric(xml, currentNote, 1 + currentPosition / checkmark);
-                    } else if (remainder === checkmark / 2) {
-                        addLyric(xml, currentNote, "&");
-                    } else if (remainder === checkmark * 0.25) {
-                        addLyric(xml, currentNote, "e");
-                    } else if (remainder === checkmark * 0.75) {
-                        addLyric(xml, currentNote, "a");
+                    if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
+                        if (remainder === 0) {
+                            addLyric(xml, currentNote, 1 + currentPosition / checkmark);
+                        } else if (remainder === checkmark / 2) {
+                            addLyric(xml, currentNote, "&");
+                        } else if (remainder === checkmark * 0.25) {
+                            addLyric(xml, currentNote, "e");
+                        } else if (remainder === checkmark * 0.75) {
+                            addLyric(xml, currentNote, "a");
+                        }
                     }
-                }
 
-                if (tripletStack.length > 0 ) {
-                    var topTriplet = tripletStack[tripletStack.length - 1];
-                    if (topTriplet.counter === 1) {
-                        addLyric(xml, currentNote, "trip");
+                    if (tripletStack.length > 0) {
+                        var topTriplet = tripletStack[tripletStack.length - 1];
+                        if (topTriplet.counter === 1) {
+                            addLyric(xml, currentNote, "trip");
+                        }
+                        if (topTriplet.counter === 2) {
+                            addLyric(xml, currentNote, "let");
+                            tripletStack.pop();
+                        }
+                        topTriplet.counter++;
                     }
-                    if (topTriplet.counter === 2) {
-                        addLyric(xml, currentNote, "let");
-                        tripletStack.pop();
-                    }
-                    topTriplet.counter++;
-                }
 
-                currentPosition += duration;
+                    currentPosition += duration;
+                }
             }
 
             console.log("Measure " + measureNumber + " " + beats + " / " + beatType + ", divisions = " + divisions+ ", clef = " + selectedClef);
