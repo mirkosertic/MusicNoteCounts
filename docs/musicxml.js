@@ -23,7 +23,7 @@ function addLyric(document, node, text) {
     node.appendChild(newLyric);
 }
 
-function process(xml, partids) {
+function processMusicXML(xml, partids) {
     // Check all selected score parts
     for (var l = 0; l < partids.length; l++) {
         var partId = partids[l];
@@ -157,41 +157,61 @@ function process(xml, partids) {
     return toString(xml);
 }
 
-function loadStep1XML(text) {
-
-    var xml = toXML(text);
-
-    var paras = document.getElementsByClassName('generated');
-    while(paras[0]) {
-        paras[0].parentNode.removeChild(paras[0]);
+function clearGenerated() {
+    var generatedDOMNodes = document.getElementsByClassName('generated');
+    while(generatedDOMNodes[0]) {
+        generatedDOMNodes[0].parentNode.removeChild(generatedDOMNodes[0]);
     }
+}
+
+function addTrackSelector(name,id) {
+    var checkdiv = document.createElement("div");
+    checkdiv.setAttribute("class", "partselector generated")
+    var checkbox = document.createElement("input");
+    checkbox.setAttribute("type", "checkbox");
+    checkbox.setAttribute("value", id);
+    checkbox.setAttribute("checked", "checked");
+    checkdiv.append(checkbox);
+    var label = document.createElement("label");
+    label.setAttribute("for", "part_" + id);
+    label.appendChild(document.createTextNode(name));
+    checkdiv.appendChild(label);
+
+    document.getElementById("step2").appendChild(checkdiv);
+}
+
+function addProcessButton(clickhandler) {
+    var button = document.createElement("button");
+    button.appendChild(document.createTextNode("Process my score and take me to Step 3!"));
+    button.setAttribute("class", "generated")
+    button.addEventListener("click", clickhandler);
+    document.getElementById("step2").appendChild(button);
+}
+
+function selectedTracks() {
+    var selectedtracks = [];
+    var checkboxes = document.querySelectorAll('input[type=checkbox]:checked')
+    for (var i = 0; i < checkboxes.length; i++) {
+        selectedtracks.push(checkboxes[i].value)
+    }
+    return selectedtracks;
+}
+
+function loadStep1MusicXML(xml) {
+
+    clearGenerated();
 
     var partIterator = xml.evaluate( "/score-partwise[@version = '2.0']/part-list/score-part", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var l = 0; l < partIterator.snapshotLength; l++) {
         var scorePart = partIterator.snapshotItem(l);
 
-        var partName = singleNode(xml, scorePart, "./part-name");
+        var partName = singleNode(xml, scorePart, "./part-name").textContent;
         var partId = scorePart.getAttribute("id");
 
-        var checkdiv = document.createElement("div");
-        checkdiv.setAttribute("class", "partselector generated")
-        var checkbox = document.createElement("input");
-        checkbox.setAttribute("type", "checkbox");
-        checkbox.setAttribute("value", partId);
-        checkbox.setAttribute("checked", "checked");
-        checkdiv.append(checkbox);
-        var label = document.createElement("label");
-        label.setAttribute("for", "part_" + partId);
-        label.appendChild(document.createTextNode(partName.textContent));
-        checkdiv.appendChild(label);
+        addTrackSelector(partName, partId);
+    }
 
-        document.getElementById("step2").appendChild(checkdiv);
-   }
-
-    var button = document.createElement("button");
-    button.appendChild(document.createTextNode("Process my score and take me to Step 3!"));
-    button.setAttribute("class", "generated")
-    button.addEventListener("click", function() {
+    addProcessButton(function() {
 
         var paras = document.getElementById("step3").getElementsByClassName('generated');
         while(paras[0]) {
@@ -199,13 +219,9 @@ function loadStep1XML(text) {
         }
 
         // Select all checked input boxes
-        var selectedtracks = []
-        var checkboxes = document.querySelectorAll('input[type=checkbox]:checked')
-        for (var i = 0; i < checkboxes.length; i++) {
-            selectedtracks.push(checkboxes[i].value)
-        }
+        var selectedtracks = selectedTracks();
 
-        var xmlAsString = process(xml, selectedtracks);
+        var xmlAsString = processMusicXML(xml, selectedtracks);
 
         var downloadlink = document.getElementById("downloadlink");
 
@@ -232,36 +248,77 @@ function loadStep1XML(text) {
             document.getElementById("step3").removeAttribute("data-disabled");
         });
     });
-    document.getElementById("step2").appendChild(button);
 
     document.getElementById("step2").removeAttribute("data-disabled");
     document.getElementById("step3").setAttribute("data-disabled", "true");
 }
 
-function loadExampleDocument() {
-    fetch('test.xml').then(function(result) {
-        return result.text();
-    }).then(function(text) {
-        loadStep1XML(text);
-    });
+function loadStep1GuitarPro(zip,xml) {
+    clearGenerated();
+
+    // TODO: Implement all the magic
+}
+
+function loadExampleMusicXMLDocument() {
+    return fetchRemoteDocument("test.xml");
+}
+
+function fetchRemoteDocument(name) {
+    if (name.endsWith(".xml")) {
+        fetch(name).then(function (result) {
+            return result.text();
+        }).then(function (text) {
+            loadStep1MusicXML(toXML(text));
+        });
+    } else if (name.endsWith(".gp")) {
+        fetch(name).then(JSZip.loadAsync).then(function(zip) {
+            zip.file("Content/score.gpif").async("text").then(function(text) {
+                var xml = toXML(text);
+                loadStep1GuitarPro(zip, xml);
+            });
+        });
+    }
     return true;
+}
+
+function fetchMusicXMLFile(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+        loadStep1MusicXML(toXML(e.target.result));
+    };
+    reader.readAsText(file);
+}
+
+function fetchGuitarProFile(file) {
+    // Stored as a zip,
+    JSZip.loadAsync(file).then(function(zip) {
+        zip.file("Content/score.gpif").async("text").then(function(text) {
+            var xml = toXML(text);
+            loadStep1GuitarPro(zip, xml);
+        });
+    });
+}
+
+function fetchFile(file) {
+    if (file.name.endsWith(".xml")) {
+        // MusicXML file
+        fetchMusicXMLFile(file);
+    } else if (file.name.endsWith(".gp")) {
+        // Guitar pro file
+        fetchGuitarProFile(file);
+    }
 }
 
 document.getElementById("loadexample").onclick = function(event) {
     event.stopPropagation();
-    loadExampleDocument();
+    loadExampleMusicXMLDocument();
 }
 
 document.getElementById("fileupload").addEventListener("change", function() {
     var selectedFiles = this.files;
     if (selectedFiles.length === 1) {
         var file = selectedFiles[0];
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            console.log(file);
-            loadStep1XML(e.target.result);
-        };
-        reader.readAsText(file);
+        fetchFile(file);
     }
 }, false);
 
@@ -278,11 +335,6 @@ step1.addEventListener("drop", function(e) {
     var files = dt.files;
     if (files.length === 1) {
         var file = files[0];
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            console.log(file);
-            loadStep1XML(e.target.result);
-        };
-        reader.readAsText(file);
+        fetchFile(file);
     }
 }, false)
