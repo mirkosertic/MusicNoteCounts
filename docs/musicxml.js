@@ -165,6 +165,8 @@ function processGuitarPro(xml, partIds) {
         var timing = singleNode(xml, masterBar, "./Time").textContent.split("/");
         var bars = singleNode(xml, masterBar, "./Bars").textContent.split(" ");
 
+        var quaterDuration = 8192 / 4 / parseInt(timing[1]);
+
         for (var partId = 0; partId < partIds.length; partId++) {
             var barId = bars[partIds[partId]];
 
