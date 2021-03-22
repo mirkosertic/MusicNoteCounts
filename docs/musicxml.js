@@ -157,6 +157,45 @@ function processMusicXML(xml, partids) {
     return toString(xml);
 }
 
+function processGuitarPro(xml, partIds) {
+    var masterBars = xml.evaluate("/GPIF/MasterBars/MasterBar", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var m = 0; m < masterBars.snapshotLength; m++) {
+        var masterBar = masterBars.snapshotItem(m);
+
+        var timing = singleNode(xml, masterBar, "./Time").textContent.split("/");
+        var bars = singleNode(xml, masterBar, "./Bars").textContent.split(" ");
+
+        for (var partId = 0; partId < partIds.length; partId++) {
+            var barId = bars[partIds[partId]];
+
+            var bar = singleNode(xml, xml, "/GPIF/Bars/Bar[@id = '" + barId + "']");
+            var voices = singleNode(xml, bar, "./Voices").textContent.split(" ");
+
+            var voice = singleNode(xml, xml, "/GPIF/Voices/Voice[@id = '" + voices[0] + "']");
+            var beats = singleNode(xml, voice, "./Beats").textContent.split(" ");
+
+            for (var b = 0; b < beats.length;b++) {
+                var beatId = beats[b];
+
+                var beat = singleNode(xml, xml, "/GPIF/Beats/Beat[@id = '" + beatId + "']");
+
+                var notesNode = singleNode(xml, beat, "./Notes");
+
+                var rythmId = singleNode(xml, beat, "./Rhythm").getAttribute("ref")
+                var rythm = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']/NoteValue").textContent;
+
+                if (notesNode === null) {
+                    // Rest
+                } else {
+                    // Some notes are played here
+                    var notes = notesNode.textContent.split(" ");
+                }
+            }
+        }
+    }
+    return toString(xml);
+}
+
 function clearGenerated() {
     var generatedDOMNodes = document.getElementsByClassName('generated');
     while(generatedDOMNodes[0]) {
@@ -264,6 +303,29 @@ function loadStep1GuitarPro(zip,xml) {
 
         addTrackSelector(partName, partId);
     }
+
+    addProcessButton(function() {
+
+        var selectedtracks = selectedTracks();
+
+        var xmlAsString = processGuitarPro(xml, selectedtracks);
+
+        zip.file("Content/score.gpif", xmlAsString).generateAsync({type:"blob"}).then(function(bb) {
+
+            var downloadlink = document.getElementById("downloadlink");
+
+            var filename = "download.gp";
+            var url = window.URL.createObjectURL(bb);
+            downloadlink.setAttribute('href', url);
+            downloadlink.setAttribute('download', filename);
+            downloadlink.dataset.downloadurl = ['application/octet-stream', filename, url].join(':');
+
+            document.getElementById("step3").removeAttribute("data-disabled");
+        });
+    });
+
+    document.getElementById("step2").removeAttribute("data-disabled");
+    document.getElementById("step3").setAttribute("data-disabled", "true");
 }
 
 function loadExampleMusicXMLDocument() {
