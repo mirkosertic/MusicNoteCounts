@@ -28,8 +28,6 @@ function processMusicXML(xml, partids) {
     for (var l = 0; l < partids.length; l++) {
         var partId = partids[l];
 
-        console.log("Processing part -> " + partId);
-
         // The current set time signature
         var beats = undefined;
         var beatType = undefined;
@@ -105,8 +103,6 @@ function processMusicXML(xml, partids) {
 
                     var checkmark = (divisions * 4 / beatType);
 
-                    var remainder = currentPosition % checkmark;
-
                     if (timeModificationActualNotes.snapshotLength > 0 && timeModificationNormalNotes.snapshotLength > 0) {
                         var actualNotes = parseInt(timeModificationActualNotes.snapshotItem(0).textContent);
                         var normalNotes = parseInt(timeModificationNormalNotes.snapshotItem(0).textContent);
@@ -123,6 +119,7 @@ function processMusicXML(xml, partids) {
 
 
                     if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
+                        var remainder = currentPosition % checkmark;
                         if (remainder === 0) {
                             addLyric(xml, currentNote, 1 + currentPosition / checkmark);
                         } else if (remainder === checkmark / 2) {
@@ -149,8 +146,6 @@ function processMusicXML(xml, partids) {
                     currentPosition += duration;
                 }
             }
-
-            console.log("Measure " + measureNumber + " " + beats + " / " + beatType + ", divisions = " + divisions+ ", clef = " + selectedClef);
         }
     }
 
@@ -158,6 +153,10 @@ function processMusicXML(xml, partids) {
 }
 
 function processGuitarPro(xml, partIds) {
+
+    const maxBarLength = 64*128;
+    var newIdStart = 10000;
+
     var masterBars = xml.evaluate("/GPIF/MasterBars/MasterBar", xml, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var m = 0; m < masterBars.snapshotLength; m++) {
         var masterBar = masterBars.snapshotItem(m);
@@ -165,36 +164,97 @@ function processGuitarPro(xml, partIds) {
         var timing = singleNode(xml, masterBar, "./Time").textContent.split("/");
         var bars = singleNode(xml, masterBar, "./Bars").textContent.split(" ");
 
-        var quaterDuration = 8192 / 4 / parseInt(timing[1]);
+        var checkMark = maxBarLength / parseInt(timing[1]);
 
         for (var partId = 0; partId < partIds.length; partId++) {
+
+            var currentPosition = 0;
+
             var barId = bars[partIds[partId]];
 
             var bar = singleNode(xml, xml, "/GPIF/Bars/Bar[@id = '" + barId + "']");
             var voices = singleNode(xml, bar, "./Voices").textContent.split(" ");
 
-            var voice = singleNode(xml, xml, "/GPIF/Voices/Voice[@id = '" + voices[0] + "']");
-            var beats = singleNode(xml, voice, "./Beats").textContent.split(" ");
+            if (voices[0] !== '-1') {
 
-            for (var b = 0; b < beats.length;b++) {
-                var beatId = beats[b];
+                var voice = singleNode(xml, xml, "/GPIF/Voices/Voice[@id = '" + voices[0] + "']");
+                var beatsNode = singleNode(xml, voice, "./Beats");
+                var beats = beatsNode.textContent.split(" ");
 
-                var beat = singleNode(xml, xml, "/GPIF/Beats/Beat[@id = '" + beatId + "']");
+                var newBeatIDS = [];
 
-                var notesNode = singleNode(xml, beat, "./Notes");
+                for (var b = 0; b < beats.length; b++) {
+                    var beatId = beats[b];
 
-                var rythmId = singleNode(xml, beat, "./Rhythm").getAttribute("ref")
-                var rythm = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']/NoteValue").textContent;
+                    var beat = singleNode(xml, xml, "/GPIF/Beats/Beat[@id = '" + beatId + "']");
 
-                if (notesNode === null) {
-                    // Rest
-                } else {
-                    // Some notes are played here
-                    var notes = notesNode.textContent.split(" ");
+                    var beatClone = beat.cloneNode(true);
+                    beatClone.setAttribute("id", "" + (newIdStart++));
+                    newBeatIDS.push(beatClone.getAttribute("id"));
+
+                    beat.parentNode.appendChild(beatClone);
+
+                    var notesNode = singleNode(xml, beatClone, "./Notes");
+
+                    var rythmId = singleNode(xml, beatClone, "./Rhythm").getAttribute("ref")
+                    var rythm = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']/NoteValue").textContent;
+
+                    if (notesNode === null) {
+                        // Rest, we do nothing as tests do not have displayed lyric text
+                    } else {
+                        // Some notes are played here
+                        var notes = notesNode.textContent.split(" ");
+
+                        var text = undefined;
+                        var remainder = currentPosition % checkMark;
+
+                        if (remainder === 0) {
+                            text = 1 + currentPosition / checkMark;
+                        } else if (remainder === checkMark / 2) {
+                            text = "&";
+                        } else if (remainder === checkMark * 0.25) {
+                            text = "e";
+                        } else if (remainder === checkMark * 0.75) {
+                            text = "a";
+                        }
+
+                        if (text) {
+
+                            var freetext = singleNode(xml, beatClone, "./FreeText");
+                            if (freetext) {
+                                freetext.parentNode.removeChild(freetext);
+                            }
+
+                            freetext = xml.createElement("FreeText");
+                            freetext.appendChild(xml.createCDATASection(text));
+                            beatClone.appendChild(freetext);
+                        }
+                    }
+
+                    if ("Whole" === rythm) {
+                        currentPosition += maxBarLength;
+                    } else if ("Half" === rythm) {
+                        currentPosition += maxBarLength / 2;
+                    } else if ("Quarter" === rythm) {
+                        currentPosition += maxBarLength / 4;
+                    } else if ("Eighth" === rythm) {
+                        currentPosition += maxBarLength / 8;
+                    } else if ("16th" === rythm) {
+                        currentPosition += maxBarLength / 16;
+                    } else if ("32nd" === rythm) {
+                        currentPosition += maxBarLength / 32;
+                    } else if ("64th" === rythm) {
+                        currentPosition += maxBarLength / 64;
+                    } else {
+                        console.log("Unknown rythm value" + rythm);
+                    }
                 }
+
+                beatsNode.textContent = newBeatIDS.join(" ");
             }
         }
     }
+
     return toString(xml);
 }
 
@@ -323,6 +383,15 @@ function loadStep1GuitarPro(zip,xml) {
             downloadlink.dataset.downloadurl = ['application/octet-stream', filename, url].join(':');
 
             document.getElementById("step3").removeAttribute("data-disabled");
+
+            var preview = document.createElement("div");
+            preview.setAttribute("class", "preview generated");
+            document.getElementById("step3").appendChild(preview);
+
+            const settings = {
+                file: url,
+            };
+            const api = new alphaTab.AlphaTabApi(preview, settings);
         });
     });
 
