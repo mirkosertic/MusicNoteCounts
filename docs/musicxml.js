@@ -182,6 +182,7 @@ function processGuitarPro(xml, partIds) {
                 var beats = beatsNode.textContent.split(" ");
 
                 var newBeatIDS = [];
+                var tripletStack = [];
 
                 for (var b = 0; b < beats.length; b++) {
                     var beatId = beats[b];
@@ -197,7 +198,8 @@ function processGuitarPro(xml, partIds) {
                     var notesNode = singleNode(xml, beatClone, "./Notes");
 
                     var rythmId = singleNode(xml, beatClone, "./Rhythm").getAttribute("ref")
-                    var rythm = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']/NoteValue").textContent;
+                    var rythmNode = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']");
+                    var rythm = singleNode(xml, rythmNode, "./NoteValue").textContent;
 
                     if (notesNode === null) {
                         // Rest, we do nothing as tests do not have displayed lyric text
@@ -205,21 +207,54 @@ function processGuitarPro(xml, partIds) {
                         // Some notes are played here
                         var notes = notesNode.textContent.split(" ");
 
-                        var text = undefined;
-                        var remainder = currentPosition % checkMark;
+                        // Lemgth multiply faktor
+                        var faktor = 1;
 
-                        if (remainder === 0) {
-                            text = 1 + currentPosition / checkMark;
-                        } else if (remainder === checkMark / 2) {
-                            text = "&";
-                        } else if (remainder === checkMark * 0.25) {
-                            text = "e";
-                        } else if (remainder === checkMark * 0.75) {
-                            text = "a";
+                        var primaryTuplet = singleNode(xml, rythmNode, "./PrimaryTuplet");
+                        if (primaryTuplet === null) {
+                        } else {
+                            var actualNotes = parseInt(primaryTuplet.getAttribute("num"));
+                            var normalNotes = parseInt(primaryTuplet.getAttribute("den"));
+
+                            if (actualNotes === 3 && tripletStack.length === 0) {
+                                // We found a triplet
+                                tripletStack.push({
+                                    counter: 0,
+                                });
+                                faktor = 2/3;
+                            }
+                        }
+
+                        var text = undefined;
+                        var remainder = Math.round(currentPosition) % checkMark;
+
+                        if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
+                            if (remainder === 0) {
+                                text = 1 + currentPosition / checkMark;
+                            } else if (remainder === checkMark / 2) {
+                                text = "&";
+                            } else if (remainder === checkMark * 0.25) {
+                                text = "e";
+                            } else if (remainder === checkMark * 0.75) {
+                                text = "a";
+                            }
+                        }
+
+                        if (tripletStack.length > 0) {
+                            var topTriplet = tripletStack[tripletStack.length - 1];
+                            if (topTriplet.counter === 1) {
+                                text = "trip";
+                                faktor = 2/3;
+                            }
+                            if (topTriplet.counter === 2) {
+                                text = "let";
+                                faktor = 2/3;
+                                tripletStack.pop();
+                            }
+                            topTriplet.counter++;
                         }
 
                         if (text) {
-
                             var freetext = singleNode(xml, beatClone, "./FreeText");
                             if (freetext) {
                                 freetext.parentNode.removeChild(freetext);
@@ -231,20 +266,32 @@ function processGuitarPro(xml, partIds) {
                         }
                     }
 
+                    var augmentationDot = singleNode(xml, rythmNode, "./AugmentationDot");
+                    if (augmentationDot === null) {
+                        // No dotted note
+                    } else {
+                        var numberDots = parseInt(augmentationDot.getAttribute("count"));
+                        var half = 0.5;
+                        while (numberDots-- > 0) {
+                            faktor += half;
+                            half = half / 2;
+                        }
+                    }
+
                     if ("Whole" === rythm) {
-                        currentPosition += maxBarLength;
+                        currentPosition += maxBarLength * faktor;
                     } else if ("Half" === rythm) {
-                        currentPosition += maxBarLength / 2;
+                        currentPosition += maxBarLength / 2 * faktor;
                     } else if ("Quarter" === rythm) {
-                        currentPosition += maxBarLength / 4;
+                        currentPosition += maxBarLength / 4 * faktor;
                     } else if ("Eighth" === rythm) {
-                        currentPosition += maxBarLength / 8;
+                        currentPosition += maxBarLength / 8 * faktor;
                     } else if ("16th" === rythm) {
-                        currentPosition += maxBarLength / 16;
+                        currentPosition += maxBarLength / 16 * faktor;
                     } else if ("32nd" === rythm) {
-                        currentPosition += maxBarLength / 32;
+                        currentPosition += maxBarLength / 32 * faktor;
                     } else if ("64th" === rythm) {
-                        currentPosition += maxBarLength / 64;
+                        currentPosition += maxBarLength / 64 * faktor;
                     } else {
                         console.log("Unknown rythm value" + rythm);
                     }
@@ -390,6 +437,9 @@ function loadStep1GuitarPro(zip,xml) {
 
             const settings = {
                 file: url,
+                display: {
+                    barCount: 12
+                }
             };
             const api = new alphaTab.AlphaTabApi(preview, settings);
         });
@@ -397,10 +447,6 @@ function loadStep1GuitarPro(zip,xml) {
 
     document.getElementById("step2").removeAttribute("data-disabled");
     document.getElementById("step3").setAttribute("data-disabled", "true");
-}
-
-function loadExampleMusicXMLDocument() {
-    return fetchRemoteDocument("test.xml");
 }
 
 function fetchRemoteDocument(name) {
@@ -411,7 +457,9 @@ function fetchRemoteDocument(name) {
             loadStep1MusicXML(toXML(text));
         });
     } else if (name.endsWith(".gp")) {
-        fetch(name).then(JSZip.loadAsync).then(function(zip) {
+        fetch(name).then(function(result) {
+            return result.arrayBuffer();
+        }).then(JSZip.loadAsync).then(function(zip) {
             zip.file("Content/score.gpif").async("text").then(function(text) {
                 var xml = toXML(text);
                 loadStep1GuitarPro(zip, xml);
@@ -444,14 +492,19 @@ function fetchFile(file) {
         // MusicXML file
         fetchMusicXMLFile(file);
     } else if (file.name.endsWith(".gp")) {
-        // Guitar pro file
+        // Guitar Pro file
         fetchGuitarProFile(file);
     }
 }
 
-document.getElementById("loadexample").onclick = function(event) {
+document.getElementById("loadexamplexml").onclick = function(event) {
     event.stopPropagation();
-    loadExampleMusicXMLDocument();
+    fetchRemoteDocument("test.xml");
+}
+
+document.getElementById("loadexamplegp").onclick = function(event) {
+    event.stopPropagation();
+    fetchRemoteDocument("test.gp");
 }
 
 document.getElementById("fileupload").addEventListener("change", function() {
