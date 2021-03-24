@@ -201,6 +201,9 @@ function processGuitarPro(xml, partIds) {
                     var rythmNode = singleNode(xml, xml, "/GPIF/Rhythms/Rhythm[@id = '" + rythmId + "']");
                     var rythm = singleNode(xml, rythmNode, "./NoteValue").textContent;
 
+                    // Length multiply faktor
+                    var faktor = 1;
+
                     if (notesNode === null) {
                         // Rest, we do nothing as tests do not have displayed lyric text
                     } else {
@@ -208,8 +211,6 @@ function processGuitarPro(xml, partIds) {
                         var notes = notesNode.textContent.split(" ");
 
                         // Lemgth multiply faktor
-                        var faktor = 1;
-
                         var primaryTuplet = singleNode(xml, rythmNode, "./PrimaryTuplet");
                         if (primaryTuplet === null) {
                         } else {
@@ -230,7 +231,7 @@ function processGuitarPro(xml, partIds) {
 
                         if (tripletStack.length === 0 || tripletStack[tripletStack.length - 1].counter === 0) {
                             if (remainder === 0) {
-                                text = 1 + currentPosition / checkMark;
+                                text = Math.round(1 + currentPosition / checkMark);
                             } else if (remainder === checkMark / 2) {
                                 text = "&";
                             } else if (remainder === checkMark * 0.25) {
