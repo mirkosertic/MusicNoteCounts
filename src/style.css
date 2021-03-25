@@ -1,0 +1,154 @@
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 10%) minmax(60rem, 80%) minmax(0, 10%);
+    gap: 0 0;
+    grid-template-areas: ". . .";
+}
+
+.welcome {
+    margin: 1rem;
+    background-color: #2c3e50;
+    padding: 1rem;
+    height: 12rem;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.headertext {
+    font-family: "Arial Black", Gadget, sans-serif;
+    font-size: 3rem;
+    color: #ecf0f1;
+    text-align: center;
+}
+
+.caption {
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 2rem;
+    color: #ecf0f1;
+    text-align: center;
+}
+
+.hint {
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 1.5rem;
+    color: #ecf0f1;
+    text-align: center;
+    padding-top: 2rem;
+    padding-left: 12rem;
+    padding-right: 12rem;
+}
+
+.step {
+    margin: 1rem;
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    min-height: 4rem;
+    color: black;
+    position: relative;
+}
+
+.step::before {
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 2rem;
+    content: attr(data-steptext);
+    position: relative;
+    top: -0.5rem;
+    left: -3.25rem;
+    background-color: #e67e22;
+    width: 10rem;
+    border-radius: 2rem;
+    text-align: center;
+    justify-content: center;
+    flex-direction: row;
+    display: flex;
+    color: #ecf0f1;
+}
+
+.stepcaption {
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 2rem;
+    color: #ecf0f1;
+}
+
+.step1 {
+    background-color: #3498db;
+}
+
+.step2 {
+    background-color: #3498db;
+}
+
+.step3 {
+    background-color: #3498db;
+}
+
+a {
+    color: #34495e;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+a:visited {
+    text-decoration: none;
+}
+
+a:hover {
+    color: black;
+}
+
+.step[data-disabled=true] {
+    background-color: #95a5a6;
+}
+
+.step[data-disabled=true]::before {
+    background-color: #7f8c8d;
+}
+
+.partselector {
+    padding: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 1rem;
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 1.5rem;
+    color: #ecf0f1;
+    background-color: #8e44ad;
+    border-radius: 1rem;
+}
+
+button {
+    background-color: #34495e;
+    color: #ecf0f1;
+    border: 1px solid #34495e;
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-top: 1rem;
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 1.5rem;
+}
+
+button:hover {
+    background-color: #2c3e50;
+    border: 1px solid #2c3e50;
+}
+
+.preview {
+    background-color: white;
+    margin: 3rem;
+}
+
+footer {
+    text-align: center;
+    font-family: "Arial", Gadget, sans-serif;
+    font-size: 1.5rem;
+}
+
+.hidden {
+    display: none;
+}

@@ -1,3 +1,5 @@
+var JSZip = require("jszip");
+
 var lastClickListener = undefined;
 
 function toXML(strdata) {
