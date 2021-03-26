@@ -5,4 +5,4 @@ A simple 3-step service to automatically add note counts to your Guitar Pro or M
 No file will be sent to any internet server. All processing is done within your browser and only on your computer. 
 This service respects your privacy!
 
-Please visit the [Project Website](mirkosertic.github.io/musicnotecounts) to see it in action. 
+Please visit the [Project Website](https://mirkosertic.github.io/musicnotecounts) to see it in action. 
