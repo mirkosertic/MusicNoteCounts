@@ -1,9 +1,9 @@
 :root {
     --welcome-background-color: #2c3e50;
     --welcome-font: "Arial Black", Gadget, sans-serif;
-    --welcome-text-color: ecf0f1;
+    --welcome-text-color: #ecf0f1;
     --welcome-caption-font: "Arial", Gadget, sans-serif;
-    --welcome-caption-color: #ecf0f1;
+    --welcome-caption-text-color: #ecf0f1;
 
     --step-font: "Arial", Gadget, sans-serif;
     --step-text-color: #ecf0f1;
@@ -26,12 +26,14 @@
 .layout {
     display: grid;
     grid-template-columns: minmax(0, 10%) minmax(60rem, 80%) minmax(0, 10%);
+    grid-gap: 0 0;
     gap: 0 0;
     grid-template-areas: ". . .";
 }
 
 .welcome {
     margin: 1rem;
+    background-color: #2c3e50;
     background-color: var(--welcome-background-color);
     padding: 1rem;
     height: 12rem;
@@ -41,22 +43,28 @@
 }
 
 .headertext {
+    font-family: "Arial Black", Gadget, sans-serif;
     font-family: var(--welcome-font);
     font-size: 3rem;
+    color: #ecf0f1;
     color: var(--welcome-text-color);
     text-align: center;
 }
 
 .caption {
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--welcome-caption-font);
     font-size: 2rem;
-    color: var(--welcome-caption-color);
+    color: #ecf0f1;
+    color: var(--welcome-caption-text-color);
     text-align: center;
 }
 
 .hint {
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 1.5rem;
+    color: #ecf0f1;
     color: var(--step-text-color);
     text-align: center;
     padding-top: 2rem;
@@ -77,12 +85,14 @@
 }
 
 .step::before {
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 2rem;
     content: attr(data-steptext);
     position: relative;
     top: -0.5rem;
     left: -3.25rem;
+    background-color: #e67e22;
     background-color: var(--step-label-color);
     width: 10rem;
     border-radius: 2rem;
@@ -94,24 +104,30 @@
 }
 
 .stepcaption {
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 2rem;
+    color: #ecf0f1;
     color: var(--step-text-color);
 }
 
 .step1 {
+    background-color: #3498db;
     background-color: var(--step-background-color);
 }
 
 .step2 {
+    background-color: #3498db;
     background-color: var(--step-background-color);
 }
 
 .step3 {
+    background-color: #3498db;
     background-color: var(--step-background-color);
 }
 
 a {
+    color: black;
     color: var(--link-text-color);
     font-weight: bold;
     text-decoration: none;
@@ -122,14 +138,17 @@ a:visited {
 }
 
 a:hover {
+    color: #34495e;
     color: var(--link-hover-color);
 }
 
 .step[data-disabled=true] {
+    background-color: #95a5a6;
     background-color: var(--step-disabled-background);
 }
 
 .step[data-disabled=true]::before {
+    background-color: #7f8c8d;
     background-color: var(--step-disabled-label-background);
 }
 
@@ -138,28 +157,37 @@ a:hover {
     margin-left: 1rem;
     margin-right: 1rem;
     margin-top: 1rem;
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 1.5rem;
+    color: #ecf0f1;
     color: var(--part-selector-text-color);
+    background-color: #8e44ad;
     background-color: var(--part-selector-background);
     border-radius: 1rem;
 }
 
 button {
+    background-color: #34495e;
     background-color: var(--process-button-background);
+    color: #ecf0f1;
     color: var(--process-button-text-color);
+    border: 1px solid #34495e;
     border: 1px solid var(--process-button-background);
     border-radius: 1rem;
     padding: 1rem;
     margin-left: 1rem;
     margin-right: 1rem;
     margin-top: 1rem;
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 1.5rem;
 }
 
 button:hover {
+    background-color: #2c3e50;
     background-color: var(--process-button-hover-background);
+    border: 1px solid #2c3e50;
     border: 1px solid var(--process-button-hover-background);
 }
 
@@ -170,6 +198,7 @@ button:hover {
 
 footer {
     text-align: center;
+    font-family: "Arial", Gadget, sans-serif;
     font-family: var(--step-font);
     font-size: 1.5rem;
 }

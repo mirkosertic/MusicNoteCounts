@@ -1,9 +1,9 @@
 :root {
     --welcome-background-color: #2c3e50;
     --welcome-font: "Arial Black", Gadget, sans-serif;
-    --welcome-text-color: ecf0f1;
+    --welcome-text-color: #ecf0f1;
     --welcome-caption-font: "Arial", Gadget, sans-serif;
-    --welcome-caption-color: #ecf0f1;
+    --welcome-caption-text-color: #ecf0f1;
 
     --step-font: "Arial", Gadget, sans-serif;
     --step-text-color: #ecf0f1;
@@ -50,7 +50,7 @@
 .caption {
     font-family: var(--welcome-caption-font);
     font-size: 2rem;
-    color: var(--welcome-caption-color);
+    color: var(--welcome-caption-text-color);
     text-align: center;
 }
 

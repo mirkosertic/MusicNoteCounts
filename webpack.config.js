@@ -1,7 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const postcssCustomProperties = require('postcss-custom-properties');
 
 module.exports = {
     mode: 'production',
@@ -20,16 +19,7 @@ module.exports = {
                 test: /\.css$/i,
                 use: [MiniCssExtractPlugin.loader,
                     { loader: 'css-loader', options: { importLoaders: 1 } },
-                    { loader: 'postcss-loader', options: {
-                            postcssOptions: {
-                                plugins: () => [
-                                    postcssCustomProperties({
-                                        preverve: false
-                                    })
-                                ]
-                            }
-                        }
-                    }
+                    { loader: 'postcss-loader', options: {} }
                 ],
             },
         ],
