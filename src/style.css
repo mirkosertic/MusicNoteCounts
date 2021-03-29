@@ -30,7 +30,7 @@
     grid-template-areas: ". . .";
 }
 
-.welcome {
+header.welcome {
     margin: 1rem;
     background-color: var(--welcome-background-color);
     padding: 1rem;
@@ -38,30 +38,20 @@
     display: flex;
     justify-content: center;
     flex-direction: column;
-}
 
-.headertext {
-    font-family: var(--welcome-font);
-    font-size: 3rem;
-    color: var(--welcome-text-color);
-    text-align: center;
-}
+    & .headertext {
+        font-family: var(--welcome-font);
+        font-size: 3rem;
+        color: var(--welcome-text-color);
+        text-align: center;
+    }
 
-.caption {
-    font-family: var(--welcome-caption-font);
-    font-size: 2rem;
-    color: var(--welcome-caption-text-color);
-    text-align: center;
-}
-
-.hint {
-    font-family: var(--step-font);
-    font-size: 1.5rem;
-    color: var(--step-text-color);
-    text-align: center;
-    padding-top: 2rem;
-    padding-left: 12rem;
-    padding-right: 12rem;
+    & .caption {
+        font-family: var(--welcome-caption-font);
+        font-size: 2rem;
+        color: var(--welcome-caption-text-color);
+        text-align: center;
+    }
 }
 
 .step {
@@ -74,41 +64,51 @@
     min-height: 4rem;
     color: black;
     position: relative;
-}
 
-.step::before {
-    font-family: var(--step-font);
-    font-size: 2rem;
-    content: attr(data-steptext);
-    position: relative;
-    top: -0.5rem;
-    left: -3.25rem;
-    background-color: var(--step-label-color);
-    width: 10rem;
-    border-radius: 2rem;
-    text-align: center;
-    justify-content: center;
-    flex-direction: row;
-    display: flex;
-    color: #ecf0f1;
-}
+    & .hint {
+        font-family: var(--step-font);
+        font-size: 1.5rem;
+        color: var(--step-text-color);
+        text-align: center;
+        padding-top: 2rem;
+        padding-left: 12rem;
+        padding-right: 12rem;
+    }
 
-.stepcaption {
-    font-family: var(--step-font);
-    font-size: 2rem;
-    color: var(--step-text-color);
-}
+    &::before {
+        font-family: var(--step-font);
+        font-size: 2rem;
+        content: attr(data-steptext);
+        position: relative;
+        top: -0.5rem;
+        left: -3.25rem;
+        background-color: var(--step-label-color);
+        width: 10rem;
+        border-radius: 2rem;
+        text-align: center;
+        justify-content: center;
+        flex-direction: row;
+        display: flex;
+        color: #ecf0f1;
+    }
 
-.step1 {
-    background-color: var(--step-background-color);
-}
+    & .stepcaption {
+        font-family: var(--step-font);
+        font-size: 2rem;
+        color: var(--step-text-color);
+    }
 
-.step2 {
-    background-color: var(--step-background-color);
-}
+    &.step1 {
+        background-color: var(--step-background-color);
+    }
 
-.step3 {
-    background-color: var(--step-background-color);
+    &.step2 {
+        background-color: var(--step-background-color);
+    }
+
+    &.step3 {
+        background-color: var(--step-background-color);
+    }
 }
 
 a {
@@ -127,10 +127,10 @@ a:hover {
 
 .step[data-disabled=true] {
     background-color: var(--step-disabled-background);
-}
 
-.step[data-disabled=true]::before {
-    background-color: var(--step-disabled-label-background);
+    &::before {
+        background-color: var(--step-disabled-label-background);
+    }
 }
 
 .partselector {
@@ -156,11 +156,11 @@ button {
     margin-top: 1rem;
     font-family: var(--step-font);
     font-size: 1.5rem;
-}
 
-button:hover {
-    background-color: var(--process-button-hover-background);
-    border: 1px solid var(--process-button-hover-background);
+    &:hover {
+        background-color: var(--process-button-hover-background);
+        border: 1px solid var(--process-button-hover-background);
+    }
 }
 
 .preview {
