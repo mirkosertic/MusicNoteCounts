@@ -1,4 +1,5 @@
 var JSZip = require("jszip");
+var opensheetmusicdisplay = require("opensheetmusicdisplay");
 
 var lastClickListener = undefined;
 
